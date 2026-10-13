@@ -39,6 +39,7 @@ dependencies {
     implementation(libs.material)
     implementation("com.codepath.libraries:asynchttpclient:2.2.0")
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

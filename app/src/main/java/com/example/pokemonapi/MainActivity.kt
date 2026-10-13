@@ -1,103 +1,122 @@
 package com.example.pokemonapi
 
 import android.os.Bundle
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.bumptech.glide.Glide
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.codepath.asynchttpclient.AsyncHttpClient
 import com.codepath.asynchttpclient.callback.JsonHttpResponseHandler
 import okhttp3.Headers
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var pokemonImage: ImageView
-    private lateinit var pokemonName: TextView
-    private lateinit var pokemonType: TextView
-    private lateinit var pokemonWeight: TextView
-    private lateinit var nextPokemonButton: Button
+    private lateinit var pokemonRecyclerView: RecyclerView
+    private lateinit var pokemonAdapter: PokemonAdapter
+
+    private val pokemonList = mutableListOf<Pokemon>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        pokemonImage = findViewById(R.id.pokemonImage)
-        pokemonName = findViewById(R.id.pokemonName)
-        pokemonType = findViewById(R.id.pokemonType)
-        pokemonWeight = findViewById(R.id.pokemonWeight)
-        nextPokemonButton = findViewById(R.id.nextPokemonButton)
+        pokemonRecyclerView = findViewById(R.id.pokemonRecyclerView)
 
-        // Load a Pokemon when the app starts
-        getPokemon()
+        pokemonAdapter = PokemonAdapter(pokemonList)
 
-        // Load another Pokemon when the button is clicked
-        nextPokemonButton.setOnClickListener {
-            getPokemon()
-        }
+        pokemonRecyclerView.adapter = pokemonAdapter
+        pokemonRecyclerView.layoutManager = LinearLayoutManager(this)
+
+        loadPokemon()
     }
 
-    private fun getPokemon() {
-
-        // Choose a random Pokemon from the original 151
-        val randomPokemon = (1..151).random()
+    private fun loadPokemon() {
 
         val client = AsyncHttpClient()
 
-        client.get(
-            "https://pokeapi.co/api/v2/pokemon/$randomPokemon",
-            object : JsonHttpResponseHandler() {
+        // Load the first 20 Pokemon
+        for (id in 1..20) {
 
-                override fun onSuccess(
-                    statusCode: Int,
-                    headers: Headers,
-                    json: JSON
-                ) {
-                    val pokemon = json.jsonObject
+            client.get(
+                "https://pokeapi.co/api/v2/pokemon/$id",
+                object : JsonHttpResponseHandler() {
 
-                    // Get Pokemon information from the JSON
-                    val name = pokemon.getString("name")
-                    val weight = pokemon.getInt("weight")
+                    override fun onSuccess(
+                        statusCode: Int,
+                        headers: Headers,
+                        json: JSON
+                    ) {
+                        val pokemonJson = json.jsonObject
 
-                    val type = pokemon
-                        .getJSONArray("types")
-                        .getJSONObject(0)
-                        .getJSONObject("type")
-                        .getString("name")
+                        val name = pokemonJson.getString("name")
 
-                    val imageUrl = pokemon
-                        .getJSONObject("sprites")
-                        .getJSONObject("other")
-                        .getJSONObject("official-artwork")
-                        .getString("front_default")
+                        val weight = pokemonJson.getInt("weight")
 
-                    // Display Pokemon name
-                    pokemonName.text =
-                        name.replaceFirstChar { it.uppercase() }
+                        val type = pokemonJson
+                            .getJSONArray("types")
+                            .getJSONObject(0)
+                            .getJSONObject("type")
+                            .getString("name")
 
-                    // Display Pokemon type
-                    pokemonType.text =
-                        "Type: ${type.replaceFirstChar { it.uppercase() }}"
+                        val imageUrl = pokemonJson
+                            .getJSONObject("sprites")
+                            .getJSONObject("other")
+                            .getJSONObject("official-artwork")
+                            .getString("front_default")
 
-                    // Display Pokemon weight
-                    pokemonWeight.text =
-                        "Weight: $weight"
+                        val pokemon = Pokemon(
+                            name,
+                            type,
+                            weight,
+                            imageUrl
+                        )
 
-                    // Display Pokemon image
-                    Glide.with(this@MainActivity)
-                        .load(imageUrl)
-                        .into(pokemonImage)
+                        pokemonList.add(pokemon)
+
+                        // Keep Pokemon in numerical order
+                        pokemonList.sortBy {
+                            getPokemonNumber(it.name)
+                        }
+
+                        pokemonAdapter.notifyDataSetChanged()
+                    }
+
+                    override fun onFailure(
+                        statusCode: Int,
+                        headers: Headers?,
+                        response: String,
+                        throwable: Throwable?
+                    ) {
+                        // Request failed
+                    }
                 }
+            )
+        }
+    }
 
-                override fun onFailure(
-                    statusCode: Int,
-                    headers: Headers?,
-                    response: String,
-                    throwable: Throwable?
-                ) {
-                    pokemonName.text = "Failed to load Pokemon"
-                }
-            }
+    private fun getPokemonNumber(name: String): Int {
+        val pokemonNames = listOf(
+            "bulbasaur",
+            "ivysaur",
+            "venusaur",
+            "charmander",
+            "charmeleon",
+            "charizard",
+            "squirtle",
+            "wartortle",
+            "blastoise",
+            "caterpie",
+            "metapod",
+            "butterfree",
+            "weedle",
+            "kakuna",
+            "beedrill",
+            "pidgey",
+            "pidgeotto",
+            "pidgeot",
+            "rattata",
+            "raticate"
         )
+
+        return pokemonNames.indexOf(name)
     }
 }
